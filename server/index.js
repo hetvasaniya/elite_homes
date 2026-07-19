@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = express();
 
 // ─── Middleware ────────────────────────────────────────────────
-app.use(cors({ origin: 'https://elite-homes-ten.vercel.app/', credentials: true }));
+app.use(cors({ origin: 'https://elite-homes-ten.vercel.app', credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
