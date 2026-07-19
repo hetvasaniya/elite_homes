@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
 // Layouts
@@ -29,6 +29,9 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminMessages from './pages/admin/AdminMessages'
 import AdminDocuments from './pages/admin/AdminDocuments'
 import CreateAdmin from './pages/admin/CreateAdmin'
+
+// Error Pages
+import NotFound from './pages/NotFound'
 
 function App() {
   const { loading } = useAuth()
@@ -87,7 +90,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route path="*" element={<Navigate to="/" replace />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />

@@ -38,7 +38,7 @@ export default function Register() {
       const res = await api.post('/auth/register', { name, email, password })
       login(res.data.user, res.data.token)
       toast.success(`Welcome to EliteEstate, ${res.data.user.name}!`)
-      navigate('/login')
+      navigate('/dashboard')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed. Please try again.')
     } finally {

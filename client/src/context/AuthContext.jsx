@@ -15,7 +15,16 @@ export const AuthProvider = ({ children }) => {
       setUser(JSON.parse(storedUser))
     }
     setLoading(false)
+
+    // Listen for the custom event fired by the Axios interceptor on 401
+    const handleAuthLogout = () => {
+      setUser(null)
+      setToken(null)
+    }
+    window.addEventListener('auth:logout', handleAuthLogout)
+    return () => window.removeEventListener('auth:logout', handleAuthLogout)
   }, [])
+
 
   const login = useCallback((userData, authToken) => {
     setUser(userData)
