@@ -6,6 +6,7 @@ import api from '../hooks/useApi'
 import toast from 'react-hot-toast'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop&q=60'
+const API_BASE = 'https://elite-homes-1-iqft.onrender.com'
 
 export default function PropertyCard({ property, onSaveToggle }) {
   const { isAuthenticated, user } = useAuth()
@@ -14,9 +15,14 @@ export default function PropertyCard({ property, onSaveToggle }) {
     user?.savedProperties?.includes(property._id) ?? false
   )
 
-  const imgSrc = property.images?.[0]
-    ? (property.images[0].startsWith('http') ? property.images[0] : property.images[0])
-    : FALLBACK_IMG
+  const resolveImage = (src) => {
+    if (!src) return FALLBACK_IMG
+    if (src.startsWith('http')) return src
+    // Relative path from server (e.g. /uploads/properties/filename.jpg)
+    return `${API_BASE}${src}`
+  }
+
+  const imgSrc = resolveImage(property.images?.[0])
 
   const handleSave = async (e) => {
     e.preventDefault()

@@ -9,6 +9,13 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop&q=60'
+const API_BASE = 'https://elite-homes-1-iqft.onrender.com'
+
+const resolveImage = (src) => {
+  if (!src) return FALLBACK_IMG
+  if (src.startsWith('http')) return src
+  return `${API_BASE}${src}`
+}
 
 export default function PropertyDetail() {
   const { id } = useParams()
@@ -63,7 +70,9 @@ export default function PropertyDetail() {
     return `₹${price?.toLocaleString()}`
   }
 
-  const images = property?.images?.length ? property.images : [FALLBACK_IMG]
+  const images = property?.images?.length
+    ? property.images.map(resolveImage)
+    : [FALLBACK_IMG]
 
   if (loading) return (
     <div className="min-h-screen bg-hero pt-24 flex items-center justify-center">
