@@ -6,6 +6,15 @@ import PropertyCard from '../components/PropertyCard'
 import PostPropertyModal from '../components/PostPropertyModal'
 import toast from 'react-hot-toast'
 
+const API_BASE = 'https://elite-homes-1-iqft.onrender.com'
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&auto=format&fit=crop'
+
+const resolveImage = (src) => {
+  if (!src) return FALLBACK_IMG
+  if (src.startsWith('http')) return src
+  return `${API_BASE}${src}`
+}
+
 const TABS = [
   { id: 'listings', label: 'My Listings', icon: Building2 },
   { id: 'requests', label: 'Requests to Owner', icon: Inbox },
@@ -85,10 +94,10 @@ function MyListings({ user }) {
             <div key={prop._id} className="glass-card overflow-hidden group">
               <div className="relative h-40 overflow-hidden">
                 <img
-                  src={prop.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&auto=format&fit=crop'}
+                  src={resolveImage(prop.images?.[0])}
                   alt={prop.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={e => { e.target.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&auto=format&fit=crop' }}
+                  onError={e => { e.target.src = FALLBACK_IMG }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy-950/70 to-transparent" />
                 <div className="absolute top-2 left-2 flex gap-1.5">
