@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = express();
 
 // ─── Middleware ────────────────────────────────────────────────
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: 'https://elite-homes-ten.vercel.app/', credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -24,7 +24,7 @@ app.use('/api/admin', require('./routes/admin'));
 // ─── Health Check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date() }));
 
-// ─── Error Handler ────────────────────────────────────────────
+// ─── Error Handler ────────────────────────────────────────────x
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
