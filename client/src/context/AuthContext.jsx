@@ -46,10 +46,11 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const isAdmin = user?.role === 'admin'
+  const isEmployee = user?.role === 'employee'
   const isAuthenticated = !!user && !!token
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, isAdmin, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, isAdmin, isEmployee, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   )

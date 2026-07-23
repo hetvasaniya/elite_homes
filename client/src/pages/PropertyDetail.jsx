@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import api from '../hooks/useApi'
 import { useAuth } from '../context/AuthContext'
+import ChatWidget from '../components/ChatWidget'
 import toast from 'react-hot-toast'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop&q=60'
@@ -29,6 +30,7 @@ export default function PropertyDetail() {
   const [sending, setSending] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     api.get(`/properties/${id}`)
@@ -221,6 +223,18 @@ export default function PropertyDetail() {
                 <Heart className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`} />
                 {isSaved ? 'Saved' : 'Save Property'}
               </button>
+
+              {/* Chat with Seller */}
+              {isAuthenticated && property.owner?._id !== user?._id && (
+                <button
+                  id="chat-with-seller-btn"
+                  onClick={() => setChatOpen(true)}
+                  className="mt-3 w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm bg-gold-500 hover:bg-gold-400 text-navy-950 transition-all duration-200"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Chat with Seller
+                </button>
+              )}
             </div>
 
             {/* Owner Card */}
@@ -278,7 +292,34 @@ export default function PropertyDetail() {
             </div>
           </div>
         </div>
+
+        {/* Map embed if lat/lng present */}
+        {property.latitude && property.longitude && (
+          <div className="mt-8 glass-card overflow-hidden rounded-2xl">
+            <div className="px-5 py-4 border-b border-white/10">
+              <h2 className="font-semibold text-white flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-gold-400" /> Location on Map
+              </h2>
+            </div>
+            <iframe
+              title="Property Location"
+              src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=15&output=embed`}
+              className="w-full h-64"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        )}
       </div>
+
+      {/* Chat Widget */}
+      {chatOpen && property.owner && (
+        <ChatWidget
+          property={property}
+          seller={property.owner}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </div>
   )
 }

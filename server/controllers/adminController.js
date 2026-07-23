@@ -31,23 +31,37 @@ const docUpload = multer({
 
 exports.docUploadMiddleware = docUpload;
 
-// GET /api/admin/stats
+// ─── GET /api/admin/stats (EXTENDED) ─────────────────────────
 exports.getStats = async (req, res) => {
   try {
-    const [users, admins, properties, messages, contactMessages] = await Promise.all([
-      User.countDocuments(),
+    const [users, admins, employees, allProperties, pendingProps, approvedProps, rejectedProps, messages, contactMessages] = await Promise.all([
+      User.countDocuments({ role: 'user' }),
       User.countDocuments({ role: 'admin' }),
+      User.countDocuments({ role: 'employee' }),
       Property.countDocuments(),
+      Property.countDocuments({ status: 'pending' }),
+      Property.countDocuments({ status: 'approved' }),
+      Property.countDocuments({ status: 'rejected' }),
       ContactForm.countDocuments(),
       ContactForm.countDocuments({ isRead: false }),
     ]);
-    res.json({ users, admins, properties, messages, unreadMessages: contactMessages });
+    res.json({
+      users,
+      admins,
+      employees,
+      properties: allProperties,
+      pendingProperties: pendingProps,
+      approvedProperties: approvedProps,
+      rejectedProperties: rejectedProps,
+      messages,
+      unreadMessages: contactMessages,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// GET /api/admin/users
+// ─── GET /api/admin/users ─────────────────────────────────────
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password').sort({ createdAt: -1 });
@@ -57,7 +71,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// PUT /api/admin/users/:id/status
+// ─── PUT /api/admin/users/:id/status ─────────────────────────
 exports.toggleUserStatus = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -73,7 +87,26 @@ exports.toggleUserStatus = async (req, res) => {
   }
 };
 
-// GET /api/admin/messages
+// ─── DELETE /api/admin/users/:id ─────────────────────────────
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user._id.toString() === req.user._id.toString())
+      return res.status(400).json({ message: 'You cannot delete your own account.' });
+    if (user.role === 'admin')
+      return res.status(400).json({ message: 'Cannot delete an admin account.' });
+
+    // Also remove their properties
+    await Property.deleteMany({ owner: user._id });
+    await user.deleteOne();
+    res.json({ message: 'User deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── GET /api/admin/messages ──────────────────────────────────
 exports.getContactMessages = async (req, res) => {
   try {
     const messages = await ContactForm.find().sort({ createdAt: -1 });
@@ -83,7 +116,7 @@ exports.getContactMessages = async (req, res) => {
   }
 };
 
-// PUT /api/admin/messages/:id/read
+// ─── PUT /api/admin/messages/:id/read ────────────────────────
 exports.markContactRead = async (req, res) => {
   try {
     await ContactForm.findByIdAndUpdate(req.params.id, { isRead: true });
@@ -93,7 +126,7 @@ exports.markContactRead = async (req, res) => {
   }
 };
 
-// POST /api/admin/create-admin
+// ─── POST /api/admin/create-admin ────────────────────────────
 exports.createAdmin = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -113,7 +146,71 @@ exports.createAdmin = async (req, res) => {
   }
 };
 
-// POST /api/admin/upload-document
+// ─── POST /api/admin/create-employee (NEW) ───────────────────
+exports.createEmployee = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: 'All fields are required.' });
+
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(409).json({ message: 'Email already registered.' });
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const employee = await User.create({ name, email, password: hashedPassword, role: 'employee' });
+    res.status(201).json({
+      message: 'Employee created successfully.',
+      employee: { _id: employee._id, name: employee.name, email: employee.email, role: employee.role },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── GET /api/admin/employees (NEW) ──────────────────────────
+exports.getAllEmployees = async (req, res) => {
+  try {
+    const employees = await User.find({ role: 'employee' }).select('-password').sort({ createdAt: -1 });
+    res.json(employees);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── GET /api/admin/properties (NEW) ─────────────────────────
+exports.getAllProperties = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+
+    const properties = await Property.find(filter)
+      .populate('owner', 'name email')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    res.json(properties);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── DELETE /api/admin/properties/:id (NEW) ──────────────────
+exports.deleteProperty = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id);
+    if (!property) return res.status(404).json({ message: 'Property not found.' });
+
+    await property.deleteOne();
+    res.json({ message: 'Property deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── POST /api/admin/upload-document ─────────────────────────
 exports.uploadDocument = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded.' });
@@ -132,7 +229,7 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-// GET /api/admin/documents
+// ─── GET /api/admin/documents ─────────────────────────────────
 exports.getDocuments = async (req, res) => {
   try {
     const docs = await Document.find().populate('uploadedBy', 'name email').sort({ createdAt: -1 });
@@ -142,7 +239,7 @@ exports.getDocuments = async (req, res) => {
   }
 };
 
-// DELETE /api/admin/documents/:id
+// ─── DELETE /api/admin/documents/:id ─────────────────────────
 exports.deleteDocument = async (req, res) => {
   try {
     const doc = await Document.findById(req.params.id);

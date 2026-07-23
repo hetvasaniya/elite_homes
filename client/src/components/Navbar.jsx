@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Home, Building2, Info, Phone, HelpCircle, LayoutDashboard, ShieldCheck, LogOut, User, ChevronDown, Menu, X } from 'lucide-react'
+import { Home, Building2, Info, Phone, HelpCircle, LayoutDashboard, ShieldCheck, Briefcase, LogOut, User, ChevronDown, Menu, X } from 'lucide-react'
+import NotificationBell from './NotificationBell'
 
 const navLinks = [
   { to: '/', label: 'Home', icon: Home },
@@ -12,7 +13,7 @@ const navLinks = [
 ]
 
 export default function Navbar() {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth()
+  const { user, isAuthenticated, isAdmin, isEmployee, logout } = useAuth()
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -81,7 +82,9 @@ export default function Navbar() {
         {/* Right Section */}
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <div className="relative" ref={dropdownRef}>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <div className="relative" ref={dropdownRef}>
               <button
                 id="user-menu-btn"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -114,6 +117,15 @@ export default function Navbar() {
                     >
                       <LayoutDashboard className="w-4 h-4" /> Dashboard
                     </Link>
+                    {isEmployee && !isAdmin && (
+                      <Link
+                        to="/employee"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-navy-700 rounded-lg transition-colors"
+                      >
+                        <Briefcase className="w-4 h-4" /> Employee Panel
+                      </Link>
+                    )}
                     {isAdmin && (
                       <Link
                         to="/admin"
@@ -132,6 +144,7 @@ export default function Navbar() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           ) : (
             <div className="hidden md:flex items-center gap-2">

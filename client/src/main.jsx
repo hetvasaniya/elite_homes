@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { SocketProvider } from './context/SocketContext.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './index.css'
 
@@ -12,8 +13,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+            <SocketProvider>
+              <App />
+            </SocketProvider>
+          </ErrorBoundary>
         <Toaster
           position="top-right"
           toastOptions={{

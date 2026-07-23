@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Building2, Inbox, Heart, Plus, Edit2, Trash2, Eye, MessageSquare, MapPin, DollarSign, User } from 'lucide-react'
+import { Building2, Inbox, Heart, Plus, Edit2, Trash2, Eye, MessageSquare, MapPin, DollarSign, User, Bell, AlertCircle, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react'
 import api from '../hooks/useApi'
 import PropertyCard from '../components/PropertyCard'
 import PostPropertyModal from '../components/PostPropertyModal'
+import PropertyStatusBadge from '../components/PropertyStatusBadge'
 import toast from 'react-hot-toast'
 
 const API_BASE = 'https://elite-homes-1-iqft.onrender.com'
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'listings', label: 'My Listings', icon: Building2 },
   { id: 'requests', label: 'Requests to Owner', icon: Inbox },
   { id: 'saved', label: 'Saved Properties', icon: Heart },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ]
 
 // ─── My Listings Tab ──────────────────────────────────────────
@@ -26,10 +28,10 @@ function MyListings({ user }) {
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editModal, setEditModal] = useState(null)
+  const [editProperty, setEditProperty] = useState(null)
   const [deleting, setDeleting] = useState(null)
 
-  const fetch = async () => {
+  const fetchProperties = async () => {
     try {
       setLoading(true)
       const res = await api.get('/properties/my')
@@ -37,7 +39,7 @@ function MyListings({ user }) {
     } catch { } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { fetchProperties() }, [])
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this property? This cannot be undone.')) return
@@ -45,16 +47,8 @@ function MyListings({ user }) {
       setDeleting(id)
       await api.delete(`/properties/${id}`)
       toast.success('Property deleted.')
-      fetch()
+      fetchProperties()
     } catch { toast.error('Failed to delete.') } finally { setDeleting(null) }
-  }
-
-  const handleArchiveToggle = async (prop) => {
-    try {
-      await api.put(`/properties/${prop._id}`, { status: prop.status === 'Active' ? 'Archived' : 'Active' })
-      toast.success(`Property ${prop.status === 'Active' ? 'archived' : 'restored'}.`)
-      fetch()
-    } catch { toast.error('Failed to update status.') }
   }
 
   const formatPrice = (price) => {
@@ -70,7 +64,7 @@ function MyListings({ user }) {
           <h2 className="font-display text-xl font-bold text-white">My Listings</h2>
           <p className="text-slate-400 text-sm mt-0.5">{properties.length} propert{properties.length !== 1 ? 'ies' : 'y'} posted</p>
         </div>
-        <button id="post-property-btn" onClick={() => setShowModal(true)} className="btn-primary">
+        <button id="post-property-btn" onClick={() => { setEditProperty(null); setShowModal(true) }} className="btn-primary">
           <Plus className="w-4 h-4" /> Post Property
         </button>
       </div>
@@ -84,14 +78,15 @@ function MyListings({ user }) {
           <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <h3 className="font-semibold text-white mb-2">No Properties Yet</h3>
           <p className="text-slate-400 text-sm mb-5">Post your first property to start receiving inquiries.</p>
-          <button onClick={() => setShowModal(true)} className="btn-primary">
+          <button onClick={() => { setEditProperty(null); setShowModal(true) }} className="btn-primary">
             <Plus className="w-4 h-4" /> Post Property
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {properties.map(prop => (
-            <div key={prop._id} className="glass-card overflow-hidden group">
+            <div key={prop._id} className="glass-card overflow-hidden group flex flex-col">
+              {/* Image */}
               <div className="relative h-40 overflow-hidden">
                 <img
                   src={resolveImage(prop.images?.[0])}
@@ -100,24 +95,48 @@ function MyListings({ user }) {
                   onError={e => { e.target.src = FALLBACK_IMG }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy-950/70 to-transparent" />
-                <div className="absolute top-2 left-2 flex gap-1.5">
+                <div className="absolute top-2 left-2 flex gap-1.5 flex-wrap">
                   <span className={prop.type === 'Sell' ? 'badge-sell' : 'badge-rent'}>{prop.type === 'Sell' ? 'Sale' : 'Rent'}</span>
-                  <span className={prop.status === 'Active' ? 'badge-active' : 'badge-archived'}>{prop.status}</span>
+                  <PropertyStatusBadge status={prop.status} />
                 </div>
                 <div className="absolute bottom-2 left-2">
                   <span className="text-gold-400 font-bold text-sm">{formatPrice(prop.price)}</span>
                 </div>
               </div>
-              <div className="p-4">
+
+              {/* Info */}
+              <div className="p-4 flex-1 flex flex-col">
                 <h3 className="font-semibold text-white text-sm line-clamp-1 mb-1">{prop.title}</h3>
                 <div className="flex items-center gap-1 text-slate-400 text-xs mb-3">
                   <MapPin className="w-3 h-3" /> {prop.location}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleArchiveToggle(prop)}
-                    className="flex-1 text-xs py-2 rounded-lg border border-white/10 text-slate-400 hover:border-gold-500/40 hover:text-gold-400 transition-all">
-                    {prop.status === 'Active' ? 'Archive' : 'Restore'}
-                  </button>
+
+                {/* Rejection remark */}
+                {prop.status === 'rejected' && prop.rejectionRemark && (
+                  <div className="flex items-start gap-2 mb-3 p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-300 leading-relaxed">{prop.rejectionRemark}</p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="mt-auto flex gap-2">
+                  {prop.status === 'rejected' && (
+                    <button
+                      onClick={() => { setEditProperty(prop); setShowModal(true) }}
+                      className="flex-1 text-xs py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 hover:bg-amber-500/25 transition-all flex items-center justify-center gap-1"
+                    >
+                      <RefreshCw className="w-3 h-3" /> Edit & Resubmit
+                    </button>
+                  )}
+                  {prop.status !== 'rejected' && (
+                    <button
+                      onClick={() => { setEditProperty(prop); setShowModal(true) }}
+                      className="flex-1 text-xs py-2 rounded-lg border border-white/10 text-slate-400 hover:border-gold-500/40 hover:text-gold-400 transition-all"
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button
                     id={`delete-prop-${prop._id}`}
                     onClick={() => handleDelete(prop._id)}
@@ -133,7 +152,13 @@ function MyListings({ user }) {
         </div>
       )}
 
-      {showModal && <PostPropertyModal onClose={() => setShowModal(false)} onSuccess={fetch} />}
+      {showModal && (
+        <PostPropertyModal
+          onClose={() => { setShowModal(false); setEditProperty(null) }}
+          onSuccess={fetchProperties}
+          editProperty={editProperty}
+        />
+      )}
     </div>
   )
 }
@@ -217,7 +242,7 @@ function SavedTab() {
   const [saved, setSaved] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const fetch = async () => {
+  const fetchSaved = async () => {
     try {
       setLoading(true)
       const res = await api.get('/user/saved')
@@ -225,7 +250,7 @@ function SavedTab() {
     } catch {} finally { setLoading(false) }
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { fetchSaved() }, [])
 
   if (loading) return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">{[...Array(3)].map((_, i) => <div key={i} className="glass-card h-52 skeleton" />)}</div>
 
@@ -244,7 +269,109 @@ function SavedTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {saved.map(p => <PropertyCard key={p._id} property={p} onSaveToggle={fetch} />)}
+          {saved.map(p => <PropertyCard key={p._id} property={p} onSaveToggle={fetchSaved} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Notifications Tab ────────────────────────────────────────
+function NotificationsTab() {
+  const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true)
+      const res = await api.get('/notifications')
+      setNotifications(res.data)
+    } catch {} finally { setLoading(false) }
+  }
+
+  useEffect(() => { fetchNotifications() }, [])
+
+  const markAllRead = async () => {
+    try {
+      await api.put('/notifications/mark-all-read')
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    } catch {}
+  }
+
+  const markRead = async (id) => {
+    try {
+      await api.put(`/notifications/${id}/read`)
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n))
+    } catch {}
+  }
+
+  const typeConfig = {
+    approved: { icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+    rejected: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+    general: { icon: Bell, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
+
+  if (loading) return <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="glass-card h-20 skeleton" />)}</div>
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-display text-xl font-bold text-white">Notifications</h2>
+          <p className="text-slate-400 text-sm mt-0.5">{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</p>
+        </div>
+        {unreadCount > 0 && (
+          <button onClick={markAllRead} className="text-sm text-gold-400 hover:text-gold-300 transition-colors">
+            Mark all as read
+          </button>
+        )}
+      </div>
+
+      {notifications.length === 0 ? (
+        <div className="text-center py-16 glass-card">
+          <Bell className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <h3 className="font-semibold text-white mb-2">No Notifications</h3>
+          <p className="text-slate-400 text-sm">You'll be notified when your property submissions are reviewed.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {notifications.map(notif => {
+            const cfg = typeConfig[notif.type] || typeConfig.general
+            const Icon = cfg.icon
+            return (
+              <div
+                key={notif._id}
+                onClick={() => !notif.isRead && markRead(notif._id)}
+                className={`glass-card p-4 border cursor-pointer transition-all ${
+                  !notif.isRead ? 'border-gold-500/20 bg-gold-500/5' : 'border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${cfg.bg} flex-shrink-0`}>
+                    <Icon className={`w-5 h-5 ${cfg.color}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className={`font-semibold text-sm ${!notif.isRead ? 'text-white' : 'text-slate-300'}`}>
+                        {notif.title}
+                      </p>
+                      {!notif.isRead && (
+                        <span className="w-2 h-2 rounded-full bg-gold-500 flex-shrink-0 mt-1.5" />
+                      )}
+                    </div>
+                    <p className="text-slate-400 text-sm mt-1 leading-relaxed">{notif.message}</p>
+                    <p className="text-slate-600 text-xs mt-2">
+                      {new Date(notif.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -287,7 +414,7 @@ export default function Dashboard() {
               <h1 className="font-display text-xl font-bold text-white">{user?.name}</h1>
               <p className="text-slate-400 text-sm">{user?.email}</p>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1.5 text-xs font-medium rounded-full bg-gold-500/10 text-gold-400 border border-gold-500/20">
-                {user?.role === 'admin' ? '⚡ Admin' : '👤 Member'}
+                {user?.role === 'admin' ? '⚡ Admin' : user?.role === 'employee' ? '💼 Employee' : '👤 Member'}
               </span>
             </div>
           </div>
@@ -353,6 +480,7 @@ export default function Dashboard() {
           {activeTab === 'listings' && <MyListings user={user} />}
           {activeTab === 'requests' && <RequestsTab />}
           {activeTab === 'saved' && <SavedTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
         </div>
       </div>
     </div>

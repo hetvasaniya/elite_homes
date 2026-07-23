@@ -8,6 +8,7 @@ import Footer from './components/Footer'
 // Guards
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
+import EmployeeRoute from './components/EmployeeRoute'
 
 // Public Pages
 import Landing from './pages/Landing'
@@ -29,6 +30,14 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminMessages from './pages/admin/AdminMessages'
 import AdminDocuments from './pages/admin/AdminDocuments'
 import CreateAdmin from './pages/admin/CreateAdmin'
+import AdminProperties from './pages/admin/AdminProperties'
+import AdminEmployees from './pages/admin/AdminEmployees'
+
+// Employee Panel
+import EmployeeLayout from './pages/employee/EmployeeLayout'
+import EmployeeDashboard from './pages/employee/EmployeeDashboard'
+import PendingProperties from './pages/employee/PendingProperties'
+import PropertyReview from './pages/employee/PropertyReview'
 
 // Error Pages
 import NotFound from './pages/NotFound'
@@ -64,6 +73,22 @@ function App() {
           <Route path="messages" element={<AdminMessages />} />
           <Route path="documents" element={<AdminDocuments />} />
           <Route path="create-admin" element={<CreateAdmin />} />
+          <Route path="properties" element={<AdminProperties />} />
+          <Route path="employees" element={<AdminEmployees />} />
+        </Route>
+
+        {/* Employee Panel Routes — isolated layout */}
+        <Route
+          path="/employee/*"
+          element={
+            <EmployeeRoute>
+              <EmployeeLayout />
+            </EmployeeRoute>
+          }
+        >
+          <Route index element={<EmployeeDashboard />} />
+          <Route path="pending" element={<PendingProperties />} />
+          <Route path="pending/:id" element={<PropertyReview />} />
         </Route>
 
         {/* Public Routes — with Navbar & Footer */}

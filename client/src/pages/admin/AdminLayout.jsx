@@ -2,13 +2,15 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   LayoutDashboard, Users, MessageSquare, FileText, UserPlus,
-  Building2, LogOut, Shield, ChevronRight, Menu, X
+  Building2, Briefcase, LogOut, Shield, ChevronRight, Menu, X
 } from 'lucide-react'
 import { useState } from 'react'
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/users', label: 'All Users', icon: Users },
+  { to: '/admin/properties', label: 'Properties', icon: Building2 },
+  { to: '/admin/employees', label: 'Employees', icon: Briefcase },
   { to: '/admin/messages', label: 'Messages', icon: MessageSquare },
   { to: '/admin/documents', label: 'Documents', icon: FileText },
   { to: '/admin/create-admin', label: 'Create Admin', icon: UserPlus },
